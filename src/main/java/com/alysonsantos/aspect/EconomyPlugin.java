@@ -51,13 +51,15 @@ public class EconomyPlugin extends ExtendedJavaPlugin {
 
         economyManager.startScheduler();
 
+        EconomyProvider.get();
+
     }
 
     private void registerCommands() {
         CommandFrame commandFrame = new CommandFrame(this);
 
         commandFrame.registerType(OfflinePlayer.class, Bukkit::getOfflinePlayer);
-        commandFrame.register(new CommandMoney(accountManager, economyManager));
+        commandFrame.register(new CommandMoney(economyManager));
     }
 
     private void loadProvider() {
