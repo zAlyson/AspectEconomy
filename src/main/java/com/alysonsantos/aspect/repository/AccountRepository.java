@@ -34,7 +34,7 @@ public class AccountRepository implements Repository<UUID, Account> {
 
     @Override
     public Account find(UUID uuid) {
-        return null;
+        return database.query("SELECT * FROM economy WHERE uuid=?", getDeserializer(), uuid.toString()).getResponse();
     }
 
     @Override

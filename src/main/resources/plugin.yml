@@ -2,4 +2,4 @@ name: AspectEconomy
 version: 1.0
 author: zAlyson
 main: com.alysonsantos.aspect.EconomyPlugin
-depend: [Helper, helper-sql]
+depend: [Helper, helper-sql, LuckPerms]

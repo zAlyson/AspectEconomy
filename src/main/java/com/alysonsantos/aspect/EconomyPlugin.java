@@ -1,10 +1,13 @@
 package com.alysonsantos.aspect;
 
 
+import com.alysonsantos.aspect.api.EconomyApi;
+import com.alysonsantos.aspect.api.EconomyProvider;
 import com.alysonsantos.aspect.commands.CommandMoney;
 import com.alysonsantos.aspect.database.connection.MySQLDatabase;
 import com.alysonsantos.aspect.database.connection.SQLDatabase;
 import com.alysonsantos.aspect.manager.AccountManager;
+import com.alysonsantos.aspect.manager.EconomyManager;
 import com.alysonsantos.aspect.repository.AccountRepository;
 import com.alysonsantos.aspect.scheduler.BukkitSchedulerAdapter;
 import com.alysonsantos.aspect.scheduler.SchedulerAdapter;
@@ -30,10 +33,12 @@ public class EconomyPlugin extends ExtendedJavaPlugin {
     private AccountRepository repository;
 
     private final AccountManager accountManager;
+    private final EconomyManager economyManager;
     private final SchedulerAdapter schedulerAdapter;
 
     public EconomyPlugin() {
         this.accountManager = new AccountManager(this);
+        this.economyManager = new EconomyManager(this);
         this.schedulerAdapter = new BukkitSchedulerAdapter(this);
     }
 
@@ -44,13 +49,15 @@ public class EconomyPlugin extends ExtendedJavaPlugin {
         registerCommands();
         observeLogins();
 
+        economyManager.startScheduler();
+
     }
 
     private void registerCommands() {
         CommandFrame commandFrame = new CommandFrame(this);
 
         commandFrame.registerType(OfflinePlayer.class, Bukkit::getOfflinePlayer);
-        commandFrame.register(new CommandMoney(accountManager));
+        commandFrame.register(new CommandMoney(accountManager, economyManager));
     }
 
     private void loadProvider() {

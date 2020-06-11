@@ -10,12 +10,11 @@ import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
-
 @RequiredArgsConstructor
 @Getter
 public final class AccountManager {
 
-    private final Cache<UUID, Account> profileMap = Caffeine.newBuilder()
+    private final Cache<String, Account> profileMap = Caffeine.newBuilder()
             .maximumSize(10_000)
             .build();
 
@@ -24,15 +23,16 @@ public final class AccountManager {
     public void process(Player player) {
 
         final UUID uuid = player.getUniqueId();
-        final Account account = profileMap.getIfPresent(uuid);
+        final Account account = profileMap.getIfPresent(player.getName());
 
         if (account == null) {
             plugin.getRepository().async().find(uuid, found -> {
 
-                if (found != null)
-                    profileMap.put(uuid, found);
-                else
+                if (found != null) {
+                    profileMap.put(player.getName(), found);
+                } else {
                     create(player);
+                }
 
             });
         }
@@ -42,7 +42,7 @@ public final class AccountManager {
     private void create(Player player) {
         final UUID uuid = player.getUniqueId();
 
-        Account account = new Account(
+        final Account account = new Account(
                 uuid,
                 player.getName(),
                 0.0
@@ -50,7 +50,7 @@ public final class AccountManager {
 
         plugin.getRepository().async().insert(uuid, account, rows -> {
             if (rows > 0)
-                profileMap.put(uuid, account);
+                profileMap.put(player.getName(), account);
         });
 
     }
