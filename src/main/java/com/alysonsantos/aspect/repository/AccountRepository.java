@@ -23,13 +23,19 @@ public class AccountRepository implements Repository<UUID, Account> {
     @Override
     public ExceptionFunction<ResultSet, Account> getDeserializer() {
         return resultSet -> {
-            return new Account(UUID.fromString(resultSet.getString("uuid")), resultSet.getString("name"), resultSet.getDouble("balance"));
+            return new Account(
+                    UUID.fromString(resultSet.getString("uuid")),
+                    resultSet.getString("name"),
+                    resultSet.getDouble("balance"),
+                    resultSet.getDouble("tokens"),
+                    resultSet.getDouble("cash")
+            );
         };
     }
 
     @Override
     public Collection<Account> getAll() {
-        return database.queryCollection("SELECT * FROM economy", getDeserializer()).printAndReturn();
+        return database.queryCollection("SELECT * FROM economy ORDER BY `balance` DESC LIMIT 10", getDeserializer()).printAndReturn();
     }
 
     @Override
@@ -39,18 +45,21 @@ public class AccountRepository implements Repository<UUID, Account> {
 
     @Override
     public int insert(UUID uuid, Account account) {
-        System.out.println(uuid.toString().length());
-        return database.update("INSERT INTO economy (uuid, name, balance) VALUES (?, ?, ?)",
+        return database.update("INSERT INTO economy (uuid, name, balance, tokens, cash) VALUES (?, ?, ?, ?, ?)",
                 uuid.toString(),
                 account.getName(),
-                account.getBalance()
+                account.getBalance(),
+                account.getTokens(),
+                account.getCash()
         ).printAndReturn();
     }
 
     @Override
     public int update(UUID uuid, Account account) {
-        return database.update("UPDATE economy SET balance=? WHERE uuid",
+        return database.update("UPDATE economy SET balance=?, tokens=?, cash=? WHERE uuid=?",
                 account.getBalance(),
+                account.getTokens(),
+                account.getCash(),
                 uuid.toString()
         ).printAndReturn();
     }

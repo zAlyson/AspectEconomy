@@ -12,7 +12,7 @@ import java.util.Objects;
 public interface SQLDatabase {
 	
 	boolean isActive();
-	
+
 	Connection getConnection() throws SQLException;
 
 	void closeConnection();

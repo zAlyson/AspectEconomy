@@ -26,10 +26,9 @@ public class AsyncRepository<ID, R> {
         });
     }
 
-    public void update(ID id, R r, Consumer<Integer> consumer) {
+    public void update(ID id, R r) {
         makeFuture(() -> {
-            Integer result = repository.update(id, r);
-            if (consumer != null) consumer.accept(result);
+           repository.update(id, r);
         });
     }
 

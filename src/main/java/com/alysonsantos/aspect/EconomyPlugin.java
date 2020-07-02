@@ -1,36 +1,37 @@
 package com.alysonsantos.aspect;
 
 
-import com.alysonsantos.aspect.api.EconomyApi;
 import com.alysonsantos.aspect.api.EconomyProvider;
-import com.alysonsantos.aspect.commands.CommandMoney;
+import com.alysonsantos.aspect.commands.cash.*;
+import com.alysonsantos.aspect.commands.money.*;
+import com.alysonsantos.aspect.commands.tokens.*;
 import com.alysonsantos.aspect.database.connection.MySQLDatabase;
 import com.alysonsantos.aspect.database.connection.SQLDatabase;
 import com.alysonsantos.aspect.manager.AccountManager;
+import com.alysonsantos.aspect.manager.AccountQueue;
 import com.alysonsantos.aspect.manager.EconomyManager;
 import com.alysonsantos.aspect.repository.AccountRepository;
 import com.alysonsantos.aspect.scheduler.BukkitSchedulerAdapter;
 import com.alysonsantos.aspect.scheduler.SchedulerAdapter;
+import com.alysonsantos.aspect.util.VaultEconomy;
 import com.alysonsantos.aspect.util.command.CommandFrame;
 import com.google.gson.Gson;
 import lombok.Getter;
 import me.lucko.helper.Events;
-import me.lucko.helper.internal.HelperImplementationPlugin;
 import me.lucko.helper.plugin.ExtendedJavaPlugin;
-import me.lucko.helper.sql.DatabaseCredentials;
-import me.lucko.helper.sql.Sql;
-import me.lucko.helper.sql.SqlProvider;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
-@HelperImplementationPlugin
 @Getter
 public class EconomyPlugin extends ExtendedJavaPlugin {
 
     private AccountRepository repository;
+    private AccountQueue accountQueue;
 
     private final AccountManager accountManager;
     private final EconomyManager economyManager;
@@ -44,8 +45,7 @@ public class EconomyPlugin extends ExtendedJavaPlugin {
 
     @Override
     protected void enable() {
-
-        loadProvider();
+        initDatabase();
         registerCommands();
         observeLogins();
 
@@ -53,33 +53,51 @@ public class EconomyPlugin extends ExtendedJavaPlugin {
 
         EconomyProvider.get();
 
+        new VaultEconomy();
     }
 
     private void registerCommands() {
         CommandFrame commandFrame = new CommandFrame(this);
 
         commandFrame.registerType(OfflinePlayer.class, Bukkit::getOfflinePlayer);
-        commandFrame.register(new CommandMoney(economyManager));
+        commandFrame.setUsageMessage("");
+        commandFrame.register
+                (
+                        new CommandMoney(economyManager),
+                        new CommandSet(),
+                        new CommandAdd(),
+                        new CommandPay(),
+                        new CommandHelp(),
+                        new CommandRemove(),
+                        new CommandTokens(),
+                        new CommandTokensAdd(),
+                        new CommandTokensHelp(),
+                        new CommandTokensRemove(),
+                        new CommandTokensSet(),
+                        new CommandCash(),
+                        new CommandCashAdd(),
+                        new CommandCashHelp(),
+                        new CommandCashRemove(),
+                        new CommandCashSet()
+                );
     }
 
-    private void loadProvider() {
-
-        YamlConfiguration config = loadConfig("config.yml");
-
-        SqlProvider sqlProvider = getService(SqlProvider.class);
-        Sql sql = sqlProvider.getSql(DatabaseCredentials.fromConfig(config));
-
-        SQLDatabase mySQLDatabase = new MySQLDatabase(sql, true);
+    private void initDatabase() {
+        SQLDatabase mySQLDatabase = new MySQLDatabase();
 
         mySQLDatabase.update(
                 "CREATE TABLE IF NOT EXISTS economy (" +
                         "uuid VARCHAR(42) NOT NULL PRIMARY KEY, " +
                         "name VARCHAR(16) NOT NULL, " +
-                        "balance double)"
+                        "balance double,  " +
+                        "tokens double, " +
+                        "cash double)"
         );
 
         this.repository = new AccountRepository(mySQLDatabase, new Gson());
+        this.accountQueue = new AccountQueue();
 
+        accountQueue.setRemovalAction(account -> repository.update(account.getUuid(), account));
     }
 
     private void observeLogins() {
@@ -88,10 +106,14 @@ public class EconomyPlugin extends ExtendedJavaPlugin {
                 .handler(e -> {
                     accountManager.process(e.getPlayer());
                 });
+
+        Events.subscribe(PlayerQuitEvent.class, EventPriority.MONITOR)
+                .handler(e -> {
+                    accountManager.removeAndUpdate(e.getPlayer());
+                });
     }
 
     public static EconomyPlugin getPlugin() {
         return EconomyPlugin.getPlugin(EconomyPlugin.class);
     }
-
 }

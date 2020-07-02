@@ -45,6 +45,8 @@ public final class AccountManager {
         final Account account = new Account(
                 uuid,
                 player.getName(),
+                0.0,
+                0.0,
                 0.0
         );
 
@@ -53,5 +55,14 @@ public final class AccountManager {
                 profileMap.put(player.getName(), account);
         });
 
+    }
+
+    public void removeAndUpdate(Player player) {
+        final Account ifPresent = getProfileMap().getIfPresent(player.getName());
+
+        if (ifPresent != null)
+            plugin.getRepository().async().update(ifPresent.getUuid(), ifPresent);
+
+        getProfileMap().asMap().remove(ifPresent.getName());
     }
 }

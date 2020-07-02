@@ -1,28 +1,21 @@
-package com.alysonsantos.aspect.commands;
+package com.alysonsantos.aspect.commands.money;
 
 
-import com.alysonsantos.aspect.manager.AccountManager;
+import com.alysonsantos.aspect.api.EconomyApi;
+import com.alysonsantos.aspect.api.EconomyProvider;
 import com.alysonsantos.aspect.manager.EconomyManager;
 import com.alysonsantos.aspect.models.Account;
 import com.alysonsantos.aspect.util.Formats;
+import com.alysonsantos.aspect.util.Helper;
 import com.alysonsantos.aspect.util.command.Execution;
 import com.alysonsantos.aspect.util.command.annotations.Command;
 import lombok.AllArgsConstructor;
-import net.luckperms.api.LuckPerms;
-import net.luckperms.api.LuckPermsProvider;
-import net.luckperms.api.cacheddata.CachedMetaData;
-import net.luckperms.api.model.user.User;
-import net.luckperms.api.query.QueryMode;
-import net.luckperms.api.query.QueryOptions;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-
-import java.text.Normalizer;
 
 @AllArgsConstructor
 public class CommandMoney {
 
-    private final AccountManager accountManager;
+    private final EconomyApi economyApi = EconomyProvider.get();
     private final EconomyManager economyManager;
 
     @Command(
@@ -34,7 +27,7 @@ public class CommandMoney {
         if ((execution.argsCount() != 0)) {
             String userName = execution.getArg(0);
 
-            final Account account = accountManager.getProfileMap().getIfPresent(userName);
+            final Account account = economyApi.getAccount(userName);
 
             if (account == null) {
                 execution.sendMessage("§cEste jogador não existe ou está offline.");
@@ -43,24 +36,21 @@ public class CommandMoney {
 
             execution.sendMessage(
                     "\n " +
-                            "§a Coins do jogador " + userName + ": §f∞" + Formats.apply(account.getBalance()) + "§a." +
+                            "§a Coins do jogador " + userName + ": §f$" + Formats.apply(account.getBalance()) + "§a." +
                             "\n "
             );
         }
 
         Player player = execution.getPlayer();
-        final Account account = accountManager.getProfileMap().getIfPresent(player.getName());
+        final Account account = economyApi.getAccount(player.getName());
 
         execution.sendMessage(
                 "\n " +
-                        "§a Seus coins: §f∞" + Formats.apply(account.getBalance()) + "§a." +
+                        "§a Seus coins: §f$" + Formats.apply(account.getBalance()) + "§a." +
                         "\n "
         );
 
     }
-
-    private final LuckPerms api = LuckPermsProvider.get();
-    ;
 
     @Command(
             name = "money.top"
@@ -75,7 +65,7 @@ public class CommandMoney {
 
         int index = 1;
         for (Account account : economyManager.getAccountList()) {
-            execution.sendMessage("    §a" + index + "º: " + (index == 1 ? "§2[$]" : " ") + getPrefix(account.getName()) + account.getName() +"§7: $" + Formats.apply(account.getBalance()) + " de coins");
+            execution.sendMessage("    §a" + index + "º: " + (index == 1 ? "§2[$] " : "") + Helper.getPrefix(account.getName()) + account.getName() +"§7: $" + Formats.apply(account.getBalance()) + " de coins");
 
             index++;
         }
@@ -84,14 +74,16 @@ public class CommandMoney {
 
     }
 
-    public final String getPrefix(String userName) {
-        final Player player = Bukkit.getPlayer(userName);
-        final User user = api.getUserManager().getUser(userName);
+    @Command(
+            name = "money.magnata"
+    )
+    public void magnata(Execution execution) {
 
-        final QueryOptions queryOptions = api.getContextManager().getQueryOptions(player);
-        final CachedMetaData metaData = user.getCachedData().getMetaData(queryOptions);
+        execution.sendMessage(
+                "\n " +
+                        "§a§l   TYCOON ATUAL §7§l→§f " + Helper.getPrefix(economyManager.getTycoon()) + economyManager.getTycoon() + "§a!" +
+                        "\n "
+        );
 
-        return metaData.getPrefix().replace("&", "§");
     }
-
 }
